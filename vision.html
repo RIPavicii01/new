@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatGPT 개발</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+    <!-- <script src="vision.js"></script> -->
+</head>
+<body>
+    
+    <h1> 장형준의 인공지능 놀이터 구글 비젼 API </h1>
+
+   <input type="file" onchange="uploadFiles(this.files)">
+   <input type="button" onclick="analyze()" value="이미지분석">
+    
+
+    <img id="gimage" style="border:5px solid #555">
+
+    <textarea  id="result" cols="30" rows="10"></textarea>
+
+</body>
+</html>
+
+
+
+
+<script>
+    VISION_API_KEY= "AIzaSyB75x0kzS6ohNT137sTfQYE6h-UQHdHhxA"
+CV_URL = 'https://vision.googleapis.com/v1/images:annotate?key=' + VISION_API_KEY;
+function processFile(event){
+    content = event.target.result 
+    imagestring = content.replace('data:image/jpeg;base64,', '')
+    document.getElementById("gimage").src = content
+}
+
+function uploadFiles(files){
+    file = files[0]
+    reader = new FileReader()
+    reader.onloadend = processFile
+    reader.readAsDataURL(file)
+}
+
+function analyze(){
+    data ={
+        requests: [{
+            image:{
+                content: imagestring
+            },
+            features:[{
+                type:"FACE_DETECTION",
+                maxResults: 100
+            }]
+        }]
+    }
+
+    $.ajax({
+        type:"POST",
+        url:'https://vision.googleapis.com/v1/images:annotate?key=' + VISION_API_KEY,
+        headers:{
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+        },
+        data: JSON.stringify(data),
+        contentType: "application/json; charset=utf-8"
+    }).done( function(response){
+        console.log(response)
+
+    }).fail(function(error){
+        console.log(error)
+
+    })
+}
+</script>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2022143032_장형준 Google Vision API(중간고사)</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+    <!-- <script src="middle.js"></script> -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        input[type="file"], input[type="button"] {
+            margin: 10px 0;
+            padding: 10px;
+            font-size: 16px;
+        }
+        #gimage {
+            margin-top: 20px;
+            max-width: 500px;
+            border: 5px solid #555;
+        }
+        #resultArea {
+            margin-top: 20px;
+            border: 1px solid #333;
+            padding: 20px;
+            width: 500px;
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        strong {
+            color: #007BFF;
+        }
+        input[type="file"] {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        input[type="file"]:hover {
+            background-color: #0056b3;
+        }
+        input[type="button"] {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        input[type="button"]:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    
+    <h1>2022143032_장형준 Google Vision API(중간고사)</h1>
+
+    <input type="file" onchange="uploadFiles(this.files)">
+    <input type="button" onclick="analyze()" value="이미지 분석">
+
+    <img id="gimage" style="display:none;">
+
+    <!-- 이미지 분석 결과가 표시될 영역 -->
+    <div id="resultArea">
+        분석 결과가 여기에 표시됩니다.
+    </div>
+
+</body>
+</html>
+<script>
+    VISION_API_KEY= "AIzaSyB75x0kzS6ohNT137sTfQYE6h-UQHdHhxA"
+CV_URL = 'https://vision.googleapis.com/v1/images:annotate?key=' + VISION_API_KEY;
+
+let imagestring = ""; // 이미지 데이터를 저장할 변수
+
+function processFile(event){
+    content = event.target.result 
+    imagestring = content.replace('data:image/jpeg;base64,', '')
+    document.getElementById("gimage").src = content
+    document.getElementById("gimage").style.display = "block"; // 이미지가 있으면 표시
+}
+
+function uploadFiles(files){
+    file = files[0]
+    reader = new FileReader()
+    reader.onloadend = processFile
+    reader.readAsDataURL(file)
+}
+
+function analyze(){
+    data = {
+        requests: [{
+            image: {
+                content: imagestring
+            },
+            features: [{
+                type: "FACE_DETECTION",
+                maxResults: 100
+            }]
+        }]
+    }
+
+    $.ajax({
+        type: "POST",
+        url: 'https://vision.googleapis.com/v1/images:annotate?key=' + VISION_API_KEY,
+        headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+        },
+        data: JSON.stringify(data),
+        contentType: "application/json; charset=utf-8"
+    }).done(function (response) {
+        console.log(response);
+        displayResponse(response);  // 새로운 함수 호출
+    }).fail(function (error) {
+        console.log(error);
+        document.getElementById("resultArea").innerHTML = "Error: " + JSON.stringify(error);
+    });
+}
+
+function displayResponse(response) {
+    let resultArea = document.getElementById("resultArea");
+    let faceAnnotations = response.responses[0].faceAnnotations;
+
+    if (faceAnnotations && faceAnnotations.length > 0) {
+        let resultText = "<strong>얼굴이 감지되었습니다: " + faceAnnotations.length + "명</strong><br><br>";
+        
+        faceAnnotations.forEach((face, index) => {
+            resultText += "<strong>얼굴 " + (index + 1) + ":</strong><br>";
+            resultText += "기쁨도: " + getLikelihoodPercentage(face.joyLikelihood) + "%<br>";
+            resultText += "슬픔도: " + getLikelihoodPercentage(face.sorrowLikelihood) + "%<br>";
+            resultText += "화남도: " + getLikelihoodPercentage(face.angerLikelihood) + "%<br>";
+            resultText += "놀람도: " + getLikelihoodPercentage(face.surpriseLikelihood) + "%<br>";
+            resultText += "얼굴 각도 (Roll): " + face.rollAngle.toFixed(2) + "도<br><br>";
+        });
+
+        resultArea.innerHTML = resultText;
+    } else {
+        resultArea.innerHTML = "<strong>얼굴이 감지되지 않았습니다.</strong>";
+    }
+}
+
+function getLikelihoodPercentage(likelihood) {
+    switch(likelihood) {
+        case "VERY_LIKELY": return 90;
+        case "LIKELY": return 75;
+        case "POSSIBLE": return 50;
+        case "UNLIKELY": return 25;
+        case "VERY_UNLIKELY": return 10;
+        default: return 0;
+    }
+}
+</script>
